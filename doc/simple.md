@@ -29,6 +29,8 @@ and providing affine transformations :
    * [Square](#nn.Square) : an element-wise square operation ;
    * [Sqrt](#nn.Sqrt) : an element-wise [sqrt](https://github.com/torch/torch7/blob/master/doc/maths.md#res-torchsqrtres-x) operation ;
    * [MM](#nn.MM) : matrix-matrix multiplication (also supports batches of matrices) ;
+* Normalization modules:
+   * [BatchNormalization](#nn.BatchNormalization) - mean/std normalization over the mini-batch inputs, with an optional affine transform that follows
  * Miscellaneous Modules :
    * [Identity](#nn.Identity) : forward input as-is to output (useful with [ParallelTable](table.md#nn.ParallelTable));
    * [Dropout](#nn.Dropout) : masks parts of the `input` using binary samples from a [bernoulli](http://en.wikipedia.org/wiki/Bernoulli_distribution) distribution ;
@@ -852,4 +854,41 @@ model = nn.MM()
 A = torch.randn(b, m, n)
 B = torch.randn(b, n, p)
 C = model.forward({A, B})  -- C will be of size `b x m x n`
+```
+
+<a name="nn.BatchNormalization"/>
+## BatchNormalization ##
+
+`module` = `nn.BatchNormalization(N [, eps])`
+ where N = dimensionality of input
+giving N = 0 disables the learnable affine transform.
+eps is a small value added to the standard-deviation to avoid divide-by-zero. Defaults to 1e-5
+
+Implements Batch Normalization as described in the paper:
+   "Batch Normalization: Accelerating Deep Network Training
+                         by Reducing Internal Covariate Shift"
+                   by Sergey Ioffe, Christian Szegedy
+
+The operation implemented is:
+```
+   y =     ( x - mean(x) )
+        -------------------- * gamma + beta
+       standard-deviation(x) + eps
+```
+where the mean and standard-deviation are calculated per-dimension over the mini-batches
+and where gamma and beta are learnable parameter vectors of size N (where N = input dimensionality).
+The learning of gamma and beta is optional.
+
+The module only accepts 2D inputs.
+
+```lua
+-- with learnable parameters
+model = nn.BatchNormalization(m)
+A = torch.randn(b, m)
+B = model.forward(B)  -- C will be of size `b x m`
+
+-- without learnable parameters
+model = nn.BatchNormalization(0)
+A = torch.randn(b, m)
+B = model.forward(B)  -- C will be of size `b x m`
 ```

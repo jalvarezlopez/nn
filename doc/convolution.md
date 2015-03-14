@@ -18,6 +18,7 @@ A convolution is an integral that expresses the amount of overlap of one functio
    * [SpatialConvolutionMap](#nn.SpatialConvolutionMap) : a 2D convolution that uses a generic connection table ;
    * [SpatialZeroPadding](#nn.SpatialZeroPadding) : padds a feature map with specified number of zeros ;
    * [SpatialSubtractiveNormalization](#nn.SpatialSubtractiveNormalization) : a spatial subtraction operation on a series of 2D inputs using
+   * [SpatialBatchNormalization](#nn.SpatialBatchNormalization): mean/std normalization over the mini-batch inputs and pixels, with an optional affine transform that follows
 a kernel for computing the weighted average in a neighborhood ;
  * [Volumetric Modules](#nn.VolumetricModules) apply to inputs with three-dimensional relationships (e.g. videos) :
    * [VolumetricConvolution](#nn.VolumetricConvolution) : a 3D convolution over an input video (a sequence of images) ;
@@ -499,6 +500,43 @@ w1=image.display(lena)
 w2=image.display(processed)
 ```
 ![](image/lena.jpg)![](image/lenap.jpg)
+
+<a name="nn.SpatialBatchNormalization"/>
+## SpatialBatchNormalization ##
+
+`module` = `nn.SpatialBatchNormalization(N [,eps])`
+ where N = number of input feature maps
+giving N = 0 disables the learnable affine transform.
+eps is a small value added to the standard-deviation to avoid divide-by-zero. Defaults to 1e-5
+
+Implements Batch Normalization as described in the paper:
+   "Batch Normalization: Accelerating Deep Network Training
+                         by Reducing Internal Covariate Shift"
+                   by Sergey Ioffe, Christian Szegedy
+
+The operation implemented is:
+```
+   y =     ( x - mean(x) )
+        -------------------- * gamma + beta
+       standard-deviation(x)
+```
+where the mean and standard-deviation are calculated per feature-map over the mini-batches and pixels
+and where gamma and beta are learnable parameter vectors of size N (where N = number of feature maps).
+The learning of gamma and beta is optional.
+
+The module only accepts 4D inputs.
+
+```lua
+-- with learnable parameters
+model = nn.SpatialBatchNormalization(m)
+A = torch.randn(b, m)
+B = model.forward(B)  -- C will be of size `b x m`
+
+-- without learnable parameters
+model = nn.SpatialBatchNormalization(0)
+A = torch.randn(b, m)
+B = model.forward(B)  -- C will be of size `b x m`
+```
 
 <a name="nn.VolumetricModules"/>
 ## Volumetric Modules ##
