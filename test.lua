@@ -1706,7 +1706,7 @@ function nntest.SpatialAveragePooling()
    mytester:asserteq(berr, 0, torch.typename(module) .. ' - i/o backward err ')
    
    local sap = nn.SpatialSubSampling(from, ki, kj, si, sj)
-   sap.weight:fill(1.0)
+   sap.weight:fill(1.0/(ki*kj))
    sap.bias:fill(0.0)
    
    local output = module:forward(input)
@@ -1737,7 +1737,7 @@ function nntest.SpatialAveragePooling()
    mytester:asserteq(berr, 0, torch.typename(module) .. ' - i/o backward err (Batch) ')
    
    local sap = nn.SpatialSubSampling(from, ki, kj, si, sj)
-   sap.weight:fill(1.0)
+   sap.weight:fill(1.0/(ki*kj))
    sap.bias:fill(0.0)
    
    local output = module:forward(input)
@@ -2096,6 +2096,18 @@ function nntest.VolumetricMaxPooling()
    local ferr, berr = jac.testIO(module, input)
    mytester:asserteq(0, ferr, torch.typename(module) .. ' - i/o forward err ')
    mytester:asserteq(0, berr, torch.typename(module) .. ' - i/o backward err ')
+
+   -- batch
+   local nbatch = math.random(2,3)
+   module = nn.VolumetricMaxPooling(kt, ki, kj, st, si, sj)
+   input = torch.Tensor(nbatch, from, int, inj, ini):zero()
+
+   local err = jac.testJacobian(module, input)
+   mytester:assertlt(err, precision, 'error on state (Batch) ')
+
+   local ferr, berr = jac.testIO(module, input)
+   mytester:asserteq(ferr, 0, torch.typename(module) .. ' - i/o forward err (Batch) ')
+   mytester:asserteq(berr, 0, torch.typename(module) .. ' - i/o backward err (Batch) ')
 end
 
 function nntest.Module_getParameters_1()
@@ -2322,7 +2334,7 @@ function nntest.PairwiseDistance()
       module:add(nn.PairwiseDistance(p))
 
       local err = jac.testJacobian(module,input)
-      mytester:assertlt(err,precision, ' error on state ')
+      mytester:assertlt(err, 1e-4, ' error on state ')
 
       local ferr,berr = jac.testIO(module,input)
       mytester:asserteq(ferr, 0, torch.typename(module)..' - i/o forward err ')
@@ -2344,7 +2356,7 @@ function nntest.PairwiseDistance()
       module:add(nn.PairwiseDistance(p))
 
       err = jac.testJacobian(module,input)
-      mytester:assertlt(err,precision, ' error on state ')
+      mytester:assertlt(err, 1e-4, ' error on state ')
 
       -- Also check that the forward prop result is correct.
       -- manually calculate each distance separately
@@ -2698,6 +2710,18 @@ function nntest.View()
    mytester:assertTableEq(module:forward(minibatch):nElement(),
       minibatch:nElement(),
       "Error in minibatch nElement with size -1")
+
+   -- Minibatch Generalization
+   local minibatch = torch.rand(5,2,6)
+   local module = nn.View(6)
+   mytester:assertTableEq(
+      module:forward(minibatch):size(1),
+      minibatch:size(1)*minibatch:size(2),
+      "Error in minibatch generalization dimension")
+   mytester:assertTableEq(
+      module:forward(minibatch):nElement(),
+      minibatch:nElement(),
+      "Error in minibatch generalization nElement")
 end
 
 function nntest.Reshape()
